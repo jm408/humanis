@@ -1,0 +1,6 @@
+{
+  "name": "Historical Photo Restoration",
+  "description": "AI-powered historical photo restoration, colorization, and humanization tool with interactive before/after comparison, facial enhancement, and custom photo uploads.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

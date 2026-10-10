@@ -1,16 +1,16 @@
-import React from 'react';
-import { 
-  Sparkles, 
-  Upload, 
-  Download, 
-  Info, 
-  SlidersHorizontal, 
-  Camera 
-} from 'lucide-react';
+import React from "react";
+import {
+  Sparkles,
+  Upload,
+  Download,
+  Info,
+  SlidersHorizontal,
+  Camera,
+} from "lucide-react";
 
 interface HeaderProps {
-  activeTab: 'studio' | 'report' | 'ai-analysis';
-  setActiveTab: (tab: 'studio' | 'report' | 'ai-analysis') => void;
+  activeTab: "studio" | "report" | "ai-analysis" | "gallery";
+  setActiveTab: (tab: "studio" | "report" | "ai-analysis" | "gallery") => void;
   onOpenUpload: () => void;
   onOpenAiModal: () => void;
   onExport: () => void;
@@ -21,12 +21,11 @@ export const Header: React.FC<HeaderProps> = ({
   setActiveTab,
   onOpenUpload,
   onOpenAiModal,
-  onExport
+  onExport,
 }) => {
   return (
     <header className="sticky top-0 z-40 bg-zinc-950/90 backdrop-blur-md border-b border-zinc-800 text-zinc-100 shadow-xl">
-      <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 h-14 sm:h-16 flex items-center justify-between gap-2">
-        
+      <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 min-h-14 py-2 sm:py-0 sm:h-16 flex flex-wrap items-center justify-between gap-2">
         {/* Logo & Branding */}
         <div className="flex items-center space-x-2.5 shrink-0">
           <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-br from-amber-500 via-orange-600 to-amber-700 p-0.5 shadow-md">
@@ -52,22 +51,28 @@ export const Header: React.FC<HeaderProps> = ({
         {/* Tab Navigation */}
         <nav className="flex items-center space-x-1 bg-zinc-900 p-1 rounded-xl border border-zinc-800">
           <button
-            onClick={() => setActiveTab('studio')}
+            onClick={() => setActiveTab("studio")}
             className={`flex items-center space-x-1.5 px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-lg text-xs font-medium transition ${
-              activeTab === 'studio'
-                ? 'bg-zinc-800 text-amber-400 font-semibold border border-zinc-700'
-                : 'text-zinc-400 hover:text-zinc-200'
+              activeTab === "studio"
+                ? "bg-zinc-800 text-amber-400 font-semibold border border-zinc-700"
+                : "text-zinc-400 hover:text-zinc-200"
             }`}
           >
             <SlidersHorizontal className="w-3.5 h-3.5" />
             <span className="hidden sm:inline">Studio</span>
           </button>
           <button
-            onClick={() => setActiveTab('report')}
+            onClick={() => setActiveTab("gallery")}
+            className={`px-2.5 py-1 rounded-lg text-xs ${activeTab === "gallery" ? "bg-zinc-800 text-amber-400" : "text-zinc-400"}`}
+          >
+            Gallery
+          </button>
+          <button
+            onClick={() => setActiveTab("report")}
             className={`flex items-center space-x-1.5 px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-lg text-xs font-medium transition ${
-              activeTab === 'report'
-                ? 'bg-zinc-800 text-amber-400 font-semibold border border-zinc-700'
-                : 'text-zinc-400 hover:text-zinc-200'
+              activeTab === "report"
+                ? "bg-zinc-800 text-amber-400 font-semibold border border-zinc-700"
+                : "text-zinc-400 hover:text-zinc-200"
             }`}
           >
             <Info className="w-3.5 h-3.5" />
@@ -102,7 +107,6 @@ export const Header: React.FC<HeaderProps> = ({
             <span className="hidden sm:inline">Export</span>
           </button>
         </div>
-
       </div>
     </header>
   );

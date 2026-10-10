@@ -11,6 +11,7 @@ export interface FaceHotspot {
 }
 
 export interface PhotoItem {
+  saved?: boolean;
   id: string;
   title: string;
   year: string;

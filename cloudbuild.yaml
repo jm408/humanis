@@ -1,0 +1,14 @@
+steps:
+  - name: gcr.io/cloud-builders/docker
+    args:
+      - build
+      - --build-arg
+      - HUMANIS_COMMIT=${_COMMIT}
+      - -t
+      - ${_IMAGE}
+      - .
+images:
+  - ${_IMAGE}
+substitutions:
+  _COMMIT: unknown
+  _IMAGE: europe-west1-docker.pkg.dev/humanis-511115/cloud-run-source-deploy/humanis:manual

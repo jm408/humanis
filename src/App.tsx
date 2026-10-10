@@ -1,35 +1,37 @@
-import React, { useState, useEffect } from 'react';
-import { PhotoItem, RestorationSettings, FaceHotspot } from './types';
-import { Header } from './components/Header';
-import { ComparisonCanvas } from './components/ComparisonCanvas';
-import { RestorationToolbar } from './components/RestorationToolbar';
-import { ConservationReport } from './components/ConservationReport';
-import { GeminiAnalysisModal } from './components/GeminiAnalysisModal';
-import { UploadModal } from './components/UploadModal';
-import { processAiColorization } from './api/colorize';
-import { synthesizeColorizedPhoto } from './utils/imageColorizer';
-import { urlToBase64 } from './utils/imageUtils';
-import { 
-  Sparkles, 
-  CheckCircle2, 
-  ShieldCheck, 
-  ArrowRight 
-} from 'lucide-react';
+import { Gallery } from "./components/Gallery";
+import { BuildVersion } from "./components/BuildVersion";
+import {
+  savePhoto,
+  queueRestoration,
+  fetchPhoto,
+  studioPhoto,
+  downloadImage,
+} from "./api/gallery";
+import React, { useState, useEffect } from "react";
+import { PhotoItem, RestorationSettings, FaceHotspot } from "./types";
+import { Header } from "./components/Header";
+import { ComparisonCanvas } from "./components/ComparisonCanvas";
+import { RestorationToolbar } from "./components/RestorationToolbar";
+import { ConservationReport } from "./components/ConservationReport";
+import { GeminiAnalysisModal } from "./components/GeminiAnalysisModal";
+import { UploadModal } from "./components/UploadModal";
+import { urlToBase64 } from "./utils/imageUtils";
+import { Sparkles, CheckCircle2, ShieldCheck, ArrowRight } from "lucide-react";
 
 export default function App() {
-  const [year, setYear] = useState('');
-  const [location, setLocation] = useState('');
-  const [context, setContext] = useState('');
+  const [year, setYear] = useState("");
+  const [location, setLocation] = useState("");
+  const [context, setContext] = useState("");
   const [photos, setPhotos] = useState<PhotoItem[]>([]);
   const [activePhoto, setActivePhoto] = useState<PhotoItem>({
-    id: 'user-portrait',
-    title: 'Historical Restoration',
-    year: '',
-    location: '',
-    originalUrl: '',
-    restoredUrl: '',
-    description: '',
-    historicalEra: 'Archival Portrait',
+    id: "user-portrait",
+    title: "Historical Restoration",
+    year: "",
+    location: "",
+    originalUrl: "",
+    restoredUrl: "",
+    description: "",
+    historicalEra: "Archival Portrait",
     hotspots: [],
     conservationReport: {
       facialIntegrityScore: 100,
@@ -37,13 +39,17 @@ export default function App() {
       damageRemovedScore: 100,
       textileAccuracyScore: 100,
       overallMasteryScore: 100,
-      summary: 'Enter historical context & launch AI engine.',
-      details: []
-    }
+      summary: "Enter historical context & launch AI engine.",
+      details: [],
+    },
   });
 
-  const [activeTab, setActiveTab] = useState<'studio' | 'report' | 'ai-analysis'>('studio');
-  const [selectedHotspot, setSelectedHotspot] = useState<FaceHotspot | null>(null);
+  const [activeTab, setActiveTab] = useState<
+    "studio" | "report" | "ai-analysis" | "gallery"
+  >("studio");
+  const [selectedHotspot, setSelectedHotspot] = useState<FaceHotspot | null>(
+    null,
+  );
 
   // Modals
   const [isUploadOpen, setIsUploadOpen] = useState(false);
@@ -53,13 +59,17 @@ export default function App() {
   const [isProcessingAi, setIsProcessingAi] = useState(false);
   const [aiError, setAiError] = useState<string | null>(null);
   useEffect(() => {
-    try { localStorage.removeItem('user_ai_api_key'); } catch { /* Storage may be disabled. */ }
+    try {
+      localStorage.removeItem("user_ai_api_key");
+    } catch {
+      /* Storage may be disabled. */
+    }
   }, []);
 
   // Restoration Sliders
   const [settings, setSettings] = useState<RestorationSettings>({
     sliderPosition: 50,
-    viewMode: 'split',
+    viewMode: "split",
     zoomLevel: 1,
     panX: 0,
     panY: 0,
@@ -70,15 +80,15 @@ export default function App() {
     skinRosiness: 50,
     eyeClarity: 85,
     filmGrain: 10,
-    activePreset: 'natural',
+    activePreset: "natural",
     showHotspots: true,
-    showGrid: false
+    showGrid: false,
   });
 
   const handleResetSettings = () => {
     setSettings({
       sliderPosition: 50,
-      viewMode: 'split',
+      viewMode: "split",
       zoomLevel: 1,
       panX: 0,
       panY: 0,
@@ -89,81 +99,137 @@ export default function App() {
       skinRosiness: 50,
       eyeClarity: 85,
       filmGrain: 10,
-      activePreset: 'natural',
+      activePreset: "natural",
       showHotspots: true,
-      showGrid: false
+      showGrid: false,
     });
   };
 
+  const [pendingJob, setPendingJob] = useState<{
+    photoId: string;
+    jobId: string;
+  } | null>(null);
   const handlePhotoUploaded = (newPhoto: PhotoItem) => {
-    setPhotos(prev => [newPhoto, ...prev]);
+    setPhotos((prev) => [newPhoto, ...prev]);
     setActivePhoto(newPhoto);
-    if (newPhoto.year) setYear(newPhoto.year);
-    if (newPhoto.location) setLocation(newPhoto.location);
-    if (newPhoto.description) setContext(newPhoto.description);
+    setYear(newPhoto.year);
+    setLocation(newPhoto.location);
+    setContext(newPhoto.description);
+    setActiveTab("studio");
+    setAiError(null);
   };
-
   const handleRunAiColorization = async () => {
-    if (!activePhoto?.originalUrl) {
+    if (!activePhoto.originalUrl) {
       setIsUploadOpen(true);
       return;
     }
-
     setIsProcessingAi(true);
     setAiError(null);
-
     try {
-      const base64Image = await urlToBase64(activePhoto.originalUrl);
-      const promptText = `Restore, colorize, and humanize this portrait. Historical context: Year: ${year || 'Unspecified'}, Location: ${location || 'Unspecified'}, Extra details: ${context || 'None'}. Produce realistic color pixels, skin tones, and period-accurate clothing pigments.`;
-
-      const res = await processAiColorization({
-        imageBase64: base64Image,
-        era: year,
-        date: year,
-        location: location,
-        prompt: promptText
-      });
-
-      let finalColorizedUrl = res.restoredImageUrl;
-      if (!finalColorizedUrl || finalColorizedUrl === base64Image) {
-        finalColorizedUrl = await synthesizeColorizedPhoto(base64Image);
+      if (!activePhoto.saved) {
+        await savePhoto({
+          id: activePhoto.id,
+          imageBase64: await urlToBase64(activePhoto.originalUrl),
+          title: activePhoto.title,
+          year,
+          location,
+          context,
+        });
+        setActivePhoto((prev) =>
+          prev.id === activePhoto.id ? { ...prev, saved: true } : prev,
+        );
       }
-
-      const updatedPhoto: PhotoItem = {
-        ...activePhoto,
+      const job = await queueRestoration(activePhoto.id, {
         year,
         location,
-        description: context,
-        restoredUrl: finalColorizedUrl
-      };
-
-      setActivePhoto(updatedPhoto);
-      setPhotos(prev => prev.map(p => p.id === activePhoto.id ? updatedPhoto : p));
-      setSettings(prev => ({
-        ...prev,
-        viewMode: 'split',
-        sliderPosition: 50
-      }));
-    } catch (err: any) {
-      console.error('AI Colorization error:', err);
-      setAiError(err?.message || 'An error occurred during AI processing.');
-    } finally {      setIsProcessingAi(false);
+        context,
+      });
+      setPendingJob({ photoId: activePhoto.id, jobId: job.id });
+    } catch (error: any) {
+      setAiError(error.message);
+      setIsProcessingAi(false);
     }
   };
-
-  const handleExport = () => {
-    if (!activePhoto?.restoredUrl) return;
-    const link = document.createElement('a');
-    link.href = activePhoto.restoredUrl;
-    link.download = `${(activePhoto.title || 'portrait-restored').toLowerCase().replace(/\s+/g, '-')}.jpg`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+  const handleSaveOriginal = async () => {
+    if (!activePhoto.originalUrl || activePhoto.saved) return;
+    setIsProcessingAi(true);
+    setAiError(null);
+    try {
+      await savePhoto({
+        id: activePhoto.id,
+        imageBase64: await urlToBase64(activePhoto.originalUrl),
+        title: activePhoto.title,
+        year,
+        location,
+        context,
+      });
+      setActivePhoto((prev) => ({ ...prev, saved: true }));
+    } catch (error: any) {
+      setAiError(error.message);
+    } finally {
+      setIsProcessingAi(false);
+    }
+  };
+  useEffect(() => {
+    if (!pendingJob) return;
+    let cancelled = false;
+    let polling = false;
+    const poll = async () => {
+      if (polling) return;
+      polling = true;
+      try {
+        const photo = await fetchPhoto(pendingJob.photoId);
+        const job = photo.versions.find(
+          (version) => version.id === pendingJob.jobId,
+        );
+        if (cancelled || !job) return;
+        if (job.status === "succeeded") {
+          const result = studioPhoto(photo, job);
+          setActivePhoto((prev) => (prev.id === photo.id ? result : prev));
+          setPhotos((prev) =>
+            prev.map((item) => (item.id === photo.id ? result : item)),
+          );
+          setSettings((prev) => ({
+            ...prev,
+            viewMode: "split",
+            sliderPosition: 50,
+          }));
+          setPendingJob(null);
+          setIsProcessingAi(false);
+          setAiError(null);
+        } else if (job.status === "failed") {
+          setAiError(job.error || "Processing failed. Retry from the gallery.");
+          setPendingJob(null);
+          setIsProcessingAi(false);
+        }
+      } catch (error: any) {
+        if (!cancelled)
+          setAiError(error.message + " Your job remains saved in the gallery.");
+      } finally {
+        polling = false;
+      }
+    };
+    void poll();
+    const timer = setInterval(poll, 5000);
+    return () => {
+      cancelled = true;
+      clearInterval(timer);
+    };
+  }, [pendingJob]);
+  const handleExport = async () => {
+    if (!activePhoto.restoredUrl) return;
+    try {
+      await downloadImage(
+        activePhoto.restoredUrl,
+        `${activePhoto.title || "humanis-restoration"}.jpg`,
+      );
+    } catch (error: any) {
+      setAiError(error.message);
+    }
   };
 
   return (
     <div className="min-h-screen bg-zinc-950 text-zinc-100 flex flex-col font-sans selection:bg-amber-500 selection:text-zinc-950">
-      
       {/* Top Navigation */}
       <Header
         activeTab={activeTab}
@@ -173,13 +239,42 @@ export default function App() {
         onExport={handleExport}
       />
 
+      <div className="max-w-7xl w-full mx-auto px-4 pt-3 flex flex-wrap items-center gap-3 text-xs text-zinc-400">
+        {activePhoto.originalUrl && (
+          <>
+            <span>
+              {activePhoto.saved
+                ? "Saved to your private gallery"
+                : "Not saved yet"}
+            </span>
+            <button
+              disabled={isProcessingAi || activePhoto.saved}
+              onClick={handleSaveOriginal}
+              className="text-amber-400 disabled:opacity-40"
+            >
+              Save original
+            </button>
+          </>
+        )}
+        {pendingJob && (
+          <span role="status">
+            Restoration queued / processing. It continues if you close this
+            page.
+          </span>
+        )}
+      </div>
       {/* Main Container */}
       <main className="flex-1 max-w-7xl w-full mx-auto p-3 sm:p-6 space-y-4 sm:space-y-6">
-        
+        <div hidden={activeTab !== "gallery"}>
+          <Gallery
+            onOpen={(photo) => {
+              handlePhotoUploaded(photo);
+            }}
+          />
+        </div>
         {/* STUDIO TAB */}
-        {activeTab === 'studio' && (
+        {activeTab === "studio" && (
           <div className="space-y-4 sm:space-y-6">
-            
             {/* Context Badge Header (Ultra-compact mobile) */}
             <div className="bg-zinc-900/80 rounded-xl border border-zinc-800 p-3 sm:p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
               <div className="space-y-0.5">
@@ -188,28 +283,31 @@ export default function App() {
                     Target Context
                   </span>
                   <span className="text-xs text-zinc-300 font-mono font-medium">
-                    {year || 'Unknown Year'} • {location || 'Unknown Location'}
+                    {year || "Unknown Year"} • {location || "Unknown Location"}
                   </span>
                 </div>
                 <h2 className="text-base sm:text-xl font-bold text-zinc-50 tracking-tight">
-                  {activePhoto.title || 'AI Colorization Studio'}
+                  {activePhoto.title || "AI Colorization Studio"}
                 </h2>
               </div>
 
               {/* Quick Jump Hotspot Badges */}
               {activePhoto.hotspots.length > 0 && (
                 <div className="flex flex-wrap items-center gap-1 shrink-0">
-                  {activePhoto.hotspots.map(spot => (
+                  {activePhoto.hotspots.map((spot) => (
                     <button
                       key={spot.id}
                       onClick={() => {
                         setSelectedHotspot(spot);
-                        setSettings(prev => ({ ...prev, showHotspots: true }));
+                        setSettings((prev) => ({
+                          ...prev,
+                          showHotspots: true,
+                        }));
                       }}
                       className={`text-[10px] px-2 py-0.5 rounded-lg border font-medium transition ${
                         selectedHotspot?.id === spot.id
-                          ? 'bg-amber-500 text-zinc-950 border-amber-400 font-bold'
-                          : 'bg-zinc-950 text-amber-300 border-zinc-800'
+                          ? "bg-amber-500 text-zinc-950 border-amber-400 font-bold"
+                          : "bg-zinc-950 text-amber-300 border-zinc-800"
                       }`}
                     >
                       {spot.label}
@@ -221,7 +319,6 @@ export default function App() {
 
             {/* Primary Grid Layout */}
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-6 items-start">
-              
               {/* Primary Stage (8 cols on desktop) */}
               <div className="lg:col-span-8 h-full">
                 <ComparisonCanvas
@@ -230,7 +327,10 @@ export default function App() {
                   onUpdateSettings={setSettings}
                   onSelectHotspot={setSelectedHotspot}
                   selectedHotspot={selectedHotspot}
-                  isProcessingAi={isProcessingAi}
+                  isProcessingAi={
+                    isProcessingAi &&
+                    (!pendingJob || pendingJob.photoId === activePhoto.id)
+                  }
                   onOpenUpload={() => setIsUploadOpen(true)}
                   onRunColorize={handleRunAiColorization}
                 />
@@ -243,22 +343,25 @@ export default function App() {
                   onUpdateSettings={setSettings}
                   onResetSettings={handleResetSettings}
                   onRunColorize={handleRunAiColorization}
-                  isProcessingAi={isProcessingAi}
+                  isProcessingAi={
+                    isProcessingAi &&
+                    (!pendingJob || pendingJob.photoId === activePhoto.id)
+                  }
                   aiError={aiError}
                   year={year}
                   location={location}
                   context={context}
                   onYearChange={(val) => {
                     setYear(val);
-                    setActivePhoto(prev => ({ ...prev, year: val }));
+                    setActivePhoto((prev) => ({ ...prev, year: val }));
                   }}
                   onLocationChange={(val) => {
                     setLocation(val);
-                    setActivePhoto(prev => ({ ...prev, location: val }));
+                    setActivePhoto((prev) => ({ ...prev, location: val }));
                   }}
                   onContextChange={(val) => {
                     setContext(val);
-                    setActivePhoto(prev => ({ ...prev, description: val }));
+                    setActivePhoto((prev) => ({ ...prev, description: val }));
                   }}
                 />
 
@@ -273,15 +376,21 @@ export default function App() {
                   <ul className="text-xs space-y-1.5 text-zinc-300">
                     <li className="flex items-start space-x-2">
                       <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0 mt-0.5" />
-                      <span><strong>Identity:</strong> 100% facial geometry preserved.</span>
+                      <span>
+                        <strong>Identity:</strong> 100% facial geometry
+                        preserved.
+                      </span>
                     </li>
                     <li className="flex items-start space-x-2">
                       <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0 mt-0.5" />
-                      <span><strong>Incrustation:</strong> Skin tones & subsurface scattering.</span>
+                      <span>
+                        <strong>Incrustation:</strong> Skin tones & subsurface
+                        scattering.
+                      </span>
                     </li>
                   </ul>
                   <button
-                    onClick={() => setActiveTab('report')}
+                    onClick={() => setActiveTab("report")}
                     className="w-full py-2 bg-zinc-950 hover:bg-zinc-800 text-amber-400 text-xs font-medium rounded-xl border border-zinc-800 transition flex items-center justify-center space-x-1 mt-1"
                   >
                     <span>Conservation Report</span>
@@ -289,21 +398,20 @@ export default function App() {
                   </button>
                 </div>
               </div>
-
             </div>
           </div>
         )}
 
         {/* REPORT TAB */}
-        {activeTab === 'report' && (
-          <ConservationReport 
-            photo={activePhoto} 
-            onOpenUpload={() => setIsUploadOpen(true)} 
+        {activeTab === "report" && (
+          <ConservationReport
+            photo={activePhoto}
+            onOpenUpload={() => setIsUploadOpen(true)}
           />
         )}
 
         {/* AI ANALYSIS TAB */}
-        {activeTab === 'ai-analysis' && (
+        {activeTab === "ai-analysis" && (
           <div className="max-w-4xl mx-auto space-y-6 py-4">
             <div className="bg-zinc-900 rounded-2xl border border-amber-500/30 p-6 space-y-4">
               <div className="flex items-center space-x-3">
@@ -311,8 +419,12 @@ export default function App() {
                   <Sparkles className="w-6 h-6" />
                 </div>
                 <div>
-                  <h2 className="text-xl font-bold text-zinc-50">Gemini AI Inspector</h2>
-                  <p className="text-xs text-zinc-400">Advanced neural analysis & historical optimization</p>
+                  <h2 className="text-xl font-bold text-zinc-50">
+                    Gemini AI Inspector
+                  </h2>
+                  <p className="text-xs text-zinc-400">
+                    Advanced neural analysis & historical optimization
+                  </p>
                 </div>
               </div>
               <button
@@ -327,6 +439,7 @@ export default function App() {
         )}
       </main>
 
+      <BuildVersion />
       {/* Modals */}
       <GeminiAnalysisModal
         isOpen={isAiModalOpen}

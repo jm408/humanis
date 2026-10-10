@@ -27,3 +27,7 @@ AI endpoints require a Bearer access token verified by Supabase `auth.getUser`; 
 Create a Supabase project (EU region), enable email authentication, disable new user signups, and add/invite beta users from Authentication > Users. In Authentication > URL Configuration set Site URL and the exact redirect URL to the Humanis origin with a trailing slash. Configure an email provider/SMTP if the default Supabase sender does not deliver to beta users. Login uses a magic link with `shouldCreateUser: false`. The browser manages session refresh; the server independently checks the current user and approved email on every paid request.
 
 Set SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, and AUTH_ALLOWED_EMAILS at runtime on Cloud Run, then deploy this branch. Existing production remains public until redeployment. Auth configuration changes do not require a frontend rebuild. Sign-out unmounts the studio and clears its in-memory state. Gallery persistence and storage RLS are a separate backlog item; this change creates no public photo bucket or tables.
+
+## Gallery and batch processing (0.3)
+
+Private originals and result versions are stored in Supabase. Individual and batch restorations now use Cloud Tasks with an authenticated worker and persisted job status. See `DEPLOYMENT.md` for the SQL migration, setup and deployment scripts, and acceptance checks. Version/commit appear on the login page and studio footer. At this release there is no billing or retention limit.

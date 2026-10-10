@@ -27,7 +27,7 @@ test('missing configuration fails closed, health stays public', async () => {
 });
 test('both paid endpoints reject anonymous callers before parsing a body', async () => {
   configure();
-  await run(async url => { for (const route of ['/api/colorize', '/api/analyze-photo']) assert.equal((await fetch(url + route, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: 'bad-json' })).status, 401); });
+  await run(async url => { for (const route of ['/api/colorize', '/api/analyze-photo', '/api/photos']) assert.equal((await fetch(url + route, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: 'bad-json' })).status, 401); });
 });
 test('confirmed and approved email is required after server verification', async () => {
   configure(); userMock('outsider@example.com');
@@ -45,4 +45,8 @@ test('forged tokens and empty allowlist are rejected', async () => {
   await run(async url => { assert.equal((await fetch(url + '/api/auth/me', { headers: { Authorization: 'Bearer forged' } })).status, 401); });
   process.env.AUTH_ALLOWED_EMAILS = '';
   await run(async url => { assert.equal((await fetch(url + '/api/auth/me', { headers: { Authorization: 'Bearer forged' } })).status, 503); });
+});
+
+test('internal worker rejects anonymous callers independently of user authentication', async () => {
+  await run(async url => { assert.equal((await fetch(url + '/api/internal/process-job', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({jobId:'fake'}) })).status, 401); });
 });

@@ -1,5 +1,7 @@
 FROM node:22-alpine AS builder
 WORKDIR /app
+ARG HUMANIS_COMMIT=unknown
+ENV HUMANIS_COMMIT=$HUMANIS_COMMIT
 COPY package.json package-lock.json ./
 RUN npm ci
 COPY . .

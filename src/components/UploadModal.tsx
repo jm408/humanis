@@ -63,14 +63,14 @@ export const UploadModal: React.FC<UploadModalProps> = ({
     const activeImage = previewFile || imageUrl || 'https://picsum.photos/seed/vintage-portrait/800/1200';
 
     const customItem: PhotoItem = {
-      id: `user-upload-${Date.now()}`,
+      id: crypto.randomUUID(),
       title: title || 'User Uploaded Historical Portrait',
-      year: year || '1946',
-      location: location || 'France',
+      year: year || '',
+      location: location || '',
       originalUrl: activeImage,
       restoredUrl: activeImage, // Simulated restoration layer
       historicalEra: 'Archival Portrait',
-      description: 'Custom photo loaded into the AuraRestore engine for AI facial humanization, noise reduction, and colorization.',
+      description: '',
       hotspots: [
         {
           id: 'user-face-1',

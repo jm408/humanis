@@ -12,5 +12,7 @@ jobs:
       - run: npm ci
       - run: npm run lint
       - run: npm test
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:ui
       - run: npm run build
       - run: docker build -t humanis .

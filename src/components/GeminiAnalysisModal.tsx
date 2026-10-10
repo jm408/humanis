@@ -1,3 +1,4 @@
+import { authenticatedFetch } from '../auth';
 import { urlToBase64 } from "../utils/imageUtils";
 import React, { useState } from 'react';
 import { Sparkles, X, Loader2, Bot } from 'lucide-react';
@@ -87,7 +88,7 @@ export const GeminiAnalysisModal: React.FC<GeminiAnalysisModalProps> = ({
     const defaultPrompt = customPrompt || prompt || `Analyze this specific historical photo (${contextInfo}). Provide a short 3-point diagnostic focusing strictly on facial catchlights, period clothing pigments, and optical depth restoration. Keep it concise.`;
 
     try {
-      const response = await fetch('/api/analyze-photo', {
+      const response = await authenticatedFetch('/api/analyze-photo', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

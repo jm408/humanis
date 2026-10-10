@@ -1,3 +1,4 @@
+import { authenticatedFetch } from '../auth';
 export interface ColorizeRequest {
   imageBase64: string;
   service?: 'replicate' | 'gemini' | 'auto';
@@ -20,7 +21,7 @@ export interface ColorizeResponse {
  */
 export async function processAiColorization(req: ColorizeRequest): Promise<ColorizeResponse> {
   try {
-    const response = await fetch('/api/colorize', {
+    const response = await authenticatedFetch('/api/colorize', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

@@ -19,3 +19,11 @@ Credentials are server-side only. Legacy browser-stored keys are removed on star
 For a public deployment, configure access control and quotas at the hosting boundary: server-side secrets do not themselves prevent visitors from invoking paid endpoints.
 
 The npm lockfile is authoritative. Docker builds and CI use npm ci.
+
+## Private beta authentication
+
+AI endpoints require a Bearer access token verified by Supabase `auth.getUser`; a confirmed email must be in `AUTH_ALLOWED_EMAILS` (semicolon-separated). No authentication bypass exists in production or development. Missing auth configuration or an empty allowlist blocks all AI access. `/api/health` and `/api/auth/config` stay public; the latter exposes only the project URL and public publishable key. Never configure a service_role/secret key there.
+
+Create a Supabase project (EU region), enable email authentication, disable new user signups, and add/invite beta users from Authentication > Users. In Authentication > URL Configuration set Site URL and the exact redirect URL to the Humanis origin with a trailing slash. Configure an email provider/SMTP if the default Supabase sender does not deliver to beta users. Login uses a magic link with `shouldCreateUser: false`. The browser manages session refresh; the server independently checks the current user and approved email on every paid request.
+
+Set SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, and AUTH_ALLOWED_EMAILS at runtime on Cloud Run, then deploy this branch. Existing production remains public until redeployment. Auth configuration changes do not require a frontend rebuild. Sign-out unmounts the studio and clears its in-memory state. Gallery persistence and storage RLS are a separate backlog item; this change creates no public photo bucket or tables.

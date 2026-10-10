@@ -10,7 +10,7 @@ afterEach(() => {
   }
 });
 async function request(body: unknown, deps?: Parameters<typeof createApp>[0], endpoint = '/api/colorize') {
-  const server = createApp(deps).listen(0, '127.0.0.1');
+  const server = createApp(deps, (_req, res, next) => { res.locals.userId = 'test'; next(); }).listen(0, '127.0.0.1');
   await new Promise<void>(resolve => server.once('listening', resolve));
   try {
     const address = server.address() as { port: number };

@@ -1,3 +1,4 @@
+import { requireAuth } from './src/services/auth.js';
 import { aiErrorDetails } from "./src/services/aiError.js";
 import 'dotenv/config';
 import express from 'express';
@@ -9,12 +10,20 @@ import { parseImage } from './src/services/image.js';
 import { restoreWithReplicate } from './src/services/replicate.js';
 
 const directory = path.dirname(fileURLToPath(import.meta.url));
-export function createApp(dependencies = { colorizePhotoWithGemini, restoreWithReplicate }) {
+export function createApp(dependencies = { colorizePhotoWithGemini, restoreWithReplicate }, authenticate: express.RequestHandler = requireAuth) {
   const app = express();
   app.disable('x-powered-by');
-  app.use(express.json({ limit: '25mb' }));
   app.get('/api/health', (_req, res) => res.json({ status: 'ok' }));
-  app.post('/api/colorize', async (req, res) => {
+  app.get('/api/auth/config', (_req, res) => {
+    res.set('Cache-Control', 'no-store');
+    const url = process.env.SUPABASE_URL;
+    const publishableKey = process.env.SUPABASE_PUBLISHABLE_KEY;
+    if (!url || !publishableKey?.startsWith('sb_publishable_')) return res.status(503).json({ error: 'Sign-in is not configured yet.' });
+    return res.json({ url, publishableKey });
+  });
+  app.use(['/api/colorize', '/api/analyze-photo', '/api/auth/me'], authenticate);
+  app.get('/api/auth/me', (_req, res) => { res.set('Cache-Control', 'no-store'); res.json({ userId: res.locals.userId }); });
+  app.post('/api/colorize', express.json({ limit: '25mb' }), async (req, res) => {
     try {
       const { imageBase64, service = 'auto', prompt, date, era, location } = req.body ?? {};
       parseImage(imageBase64);
@@ -38,7 +47,7 @@ export function createApp(dependencies = { colorizePhotoWithGemini, restoreWithR
       return res.json({ success: true, restoredImageUrl, provider: 'gemini' });
     } catch (error) { return respondError(res, error); }
   });
-  app.post('/api/analyze-photo', async (req, res) => {
+  app.post('/api/analyze-photo', express.json({ limit: '25mb' }), async (req, res) => {
     try {
       const { imageBase64, prompt } = req.body ?? {};
       const inlineData = parseImage(imageBase64);

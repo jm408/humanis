@@ -1,3 +1,4 @@
+import { aiErrorDetails } from "./src/services/aiError.js";
 import 'dotenv/config';
 import express from 'express';
 import path from 'node:path';
@@ -64,7 +65,10 @@ function validateContext(values: Record<string, unknown>) {
 }
 function respondError(res: express.Response, error: unknown) {
   const invalid = error instanceof TypeError;
-  return res.status(invalid ? 400 : 502).json({ success: false, error: invalid ? error.message : 'AI processing failed. Please retry.' });
+  if (invalid) return res.status(400).json({ success: false, error: error.message });
+  const details = aiErrorDetails(error);
+  console.error(JSON.stringify({ event: 'ai_processing_failed', status: details.status, reason: details.reason, code: details.code }));
+  return res.status(502).json({ success: false, error: details.message, code: details.code });
 }
 export async function startServer() {
   const port = Number(process.env.PORT || 3000);

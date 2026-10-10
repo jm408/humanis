@@ -1,3 +1,4 @@
+import { urlToBase64 } from "../utils/imageUtils";
 import React, { useState } from 'react';
 import { Sparkles, X, Loader2, Bot } from 'lucide-react';
 import { PhotoItem } from '../types';
@@ -91,21 +92,13 @@ export const GeminiAnalysisModal: React.FC<GeminiAnalysisModalProps> = ({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           prompt: defaultPrompt,
-          imageBase64: photo.originalUrl || ''
+          imageBase64: await urlToBase64(photo.originalUrl || '')
         })
       });
 
       const data = await response.json();
-      if (data.analysis) {
-        setAiResult(data.analysis);
-      } else {
-        setAiResult(
-          "**Gemini AI Inspection Diagnostic:**\n\n" +
-          "* **Facial Anatomy:** Ocular geometry & eye catchlights intact.\n" +
-          "* **Textiles:** Period-accurate fabric tones based on specified era.\n" +
-          "* **Optics:** Natural daylight depth-of-field separation."
-        );
-      }
+      if (!response.ok || !data.analysis) throw new Error(data.error || 'No analysis returned.');
+      setAiResult(data.analysis);
     } catch (err) {
       console.error(err);
       setAiResult("Inspection failed. Please check network connection or API credentials.");

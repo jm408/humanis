@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { RestorationSettings } from '../types';
 import { 
   Sliders, 
@@ -29,8 +29,6 @@ interface RestorationToolbarProps {
   onResetSettings: () => void;
   onRunColorize: () => void;
   isProcessingAi: boolean;
-  apiKey: string;
-  onApiKeyChange: (key: string) => void;
   aiError?: string | null;
   year?: string;
   location?: string;
@@ -46,8 +44,6 @@ export const RestorationToolbar: React.FC<RestorationToolbarProps> = ({
   onResetSettings,
   onRunColorize,
   isProcessingAi,
-  apiKey,
-  onApiKeyChange,
   aiError,
   year = '',
   location = '',
@@ -56,7 +52,6 @@ export const RestorationToolbar: React.FC<RestorationToolbarProps> = ({
   onLocationChange,
   onContextChange
 }) => {
-  const [showKeyDrawer, setShowKeyDrawer] = useState(false);
 
   const applyPreset = (preset: RestorationSettings['activePreset']) => {
     switch (preset) {
@@ -205,50 +200,6 @@ export const RestorationToolbar: React.FC<RestorationToolbarProps> = ({
             </>
           )}
         </button>
-
-        {/* Discrete API Key Accordion */}
-        <div className="bg-zinc-950/80 rounded-xl border border-zinc-800 overflow-hidden">
-          <button
-            type="button"
-            onClick={() => setShowKeyDrawer(!showKeyDrawer)}
-            className="w-full px-3 py-2 flex items-center justify-between text-[11px] text-zinc-400 hover:text-zinc-200 transition"
-          >
-            <div className="flex items-center space-x-2">
-              <Key className="w-3.5 h-3.5 text-amber-400" />
-              <span>Personal API Key (Replicate / Gemini)</span>
-              {apiKey ? (
-                <span className="bg-emerald-500/10 text-emerald-400 text-[10px] px-1.5 py-0.2 rounded border border-emerald-500/30">
-                  Key Configured
-                </span>
-              ) : (
-                <span className="bg-zinc-800 text-zinc-400 text-[10px] px-1.5 py-0.2 rounded">
-                  Server Mode
-                </span>
-              )}
-            </div>
-            {showKeyDrawer ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
-          </button>
-
-          {showKeyDrawer && (
-            <div className="p-3 border-t border-zinc-800 space-y-2 bg-zinc-950">
-              <label className="text-[10px] text-zinc-400 font-medium block">
-                Enter your REPLICATE_API_TOKEN (e.g. <code className="text-amber-400">r8_...</code>) or Gemini API key:
-              </label>
-              <div className="relative">
-                <input
-                  type="password"
-                  value={apiKey}
-                  onChange={(e) => onApiKeyChange(e.target.value)}
-                  placeholder="r8_xxxxxxxxxxxxxxxxxxxxxxxxxx"
-                  className="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-1.5 text-xs text-zinc-100 placeholder-zinc-600 focus:outline-none focus:border-amber-500/60 font-mono"
-                />
-              </div>
-              <p className="text-[10px] text-zinc-500 leading-tight">
-                If left empty, the application uses the default server-side high-definition colorization & analysis engine.
-              </p>
-            </div>
-          )}
-        </div>
 
         {/* Error Alert Box */}
         {aiError && (

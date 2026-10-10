@@ -1,6 +1,5 @@
 export interface ColorizeRequest {
   imageBase64: string;
-  apiKey?: string;
   service?: 'replicate' | 'gemini' | 'auto';
   prompt?: string;
   era?: string;

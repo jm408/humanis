@@ -1,195 +1,91 @@
-import express from "express";
-import path from "path";
-import { fileURLToPath } from "url";
-import { createServer as createViteServer } from "vite";
-import { GoogleGenAI } from "@google/genai";
-import { colorizePhotoWithGemini } from "./src/services/gemini.js";
+import 'dotenv/config';
+import express from 'express';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { GoogleGenAI } from '@google/genai';
+import { colorizePhotoWithGemini } from './src/services/gemini.js';
+import { parseImage } from './src/services/image.js';
+import { restoreWithReplicate } from './src/services/replicate.js';
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
-async function startServer() {
+const directory = path.dirname(fileURLToPath(import.meta.url));
+export function createApp(dependencies = { colorizePhotoWithGemini, restoreWithReplicate }) {
   const app = express();
-  const PORT = 3000;
-
-  app.use(express.json({ limit: "25mb" }));
-
-  // API Routes
-  app.get("/api/health", (_req, res) => {
-    res.json({ status: "ok", timestamp: new Date().toISOString() });
-  });
-
-  // Real AI Colorization & Photo Restoration Endpoint
-  app.post("/api/colorize", async (req, res) => {
+  app.disable('x-powered-by');
+  app.use(express.json({ limit: '25mb' }));
+  app.get('/api/health', (_req, res) => res.json({ status: 'ok' }));
+  app.post('/api/colorize', async (req, res) => {
     try {
-      const { imageBase64, apiKey, service, prompt, date, era, location } = req.body;
-
-      if (!imageBase64) {
-        return res.status(400).json({
-          success: false,
-          error: "A source image in Base64 format is required for colorization."
-        });
-      }
-
-      const activeApiKey = apiKey || process.env.GEMINI_API_KEY || process.env.REPLICATE_API_TOKEN;
-
-      // 1. REPLICATE API CALL (if user provided a Replicate Token starting with 'r8_' or explicitly requested replicate)
-      if (activeApiKey && (activeApiKey.startsWith('r8_') || service === 'replicate')) {
-        console.log("Calling Replicate API for photo colorization & restoration with context...");
-        
+      const { imageBase64, service = 'auto', prompt, date, era, location } = req.body ?? {};
+      parseImage(imageBase64);
+      if (!['auto', 'gemini', 'replicate'].includes(service)) return res.status(400).json({ success: false, error: 'Unknown AI service.' });
+      validateContext({ prompt, date, era, location });
+      // Credentials always come from the server, never from the request.
+      const geminiKey = process.env.GEMINI_API_KEY;
+      const replicateKey = process.env.REPLICATE_API_TOKEN;
+      const useReplicate = service === 'replicate' || (service === 'auto' && !!replicateKey);
+      if (useReplicate) {
+        if (!replicateKey) return res.status(503).json({ success: false, error: 'Replicate is not configured.' });
         try {
-          const replicateResponse = await fetch("https://api.replicate.com/v1/predictions", {
-            method: "POST",
-            headers: {
-              "Authorization": `Bearer ${activeApiKey}`,
-              "Content-Type": "application/json"
-            },
-            body: JSON.stringify({
-              version: "7de2ea26c616d5bf2245ad0d5e24f0ff9a6204578a5c876db53142edd9d2cd56",
-              input: {
-                image: imageBase64,
-                codeformer_fidelity: 0.7,
-                background_enhance: true,
-                face_upsample: true,
-                upscale: 2,
-                prompt: `Colorize historical photo. Year: ${date || era || ''}, Location: ${location || ''}. ${prompt || ''}`.trim()
-              }
-            })
-          });
-
-          if (replicateResponse.ok) {
-            let prediction = await replicateResponse.json();
-            let attempts = 0;
-            while (prediction.status !== "succeeded" && prediction.status !== "failed" && attempts < 30) {
-              await new Promise(resolve => setTimeout(resolve, 1500));
-              attempts++;
-              const getRes = await fetch(prediction.urls.get, {
-                headers: { "Authorization": `Bearer ${activeApiKey}` }
-              });
-              prediction = await getRes.json();
-            }
-
-            if (prediction.status === "succeeded" && prediction.output) {
-              const restoredUrl = Array.isArray(prediction.output) ? prediction.output[0] : prediction.output;
-              return res.json({
-                success: true,
-                restoredImageUrl: restoredUrl,
-                message: "Replicate API restoration & colorization succeeded."
-              });
-            }
-          }
-        } catch (repErr: any) {
-          console.warn("Replicate fetch warning:", repErr?.message);
+          const restoredImageUrl = await dependencies.restoreWithReplicate({ imageBase64, token: replicateKey });
+          return res.json({ success: true, restoredImageUrl, provider: 'replicate' });
+        } catch {
+          if (service !== 'auto' || !geminiKey) return res.status(502).json({ success: false, error: 'Replicate restoration failed. Please retry.' });
         }
       }
-
-      // 2. DIRECT GEMINI API COLORIZATION & HUMANIZATION (Gemini 3.6 Flash / Image generation)
-      try {
-        console.log("Executing Gemini 3.6 Flash / Multimodal photo colorization & restoration...");
-        const restoredBase64 = await colorizePhotoWithGemini({
-          imageBase64,
-          year: date || era,
-          location,
-          context: prompt,
-          apiKey: activeApiKey
-        });
-
-        return res.json({
-          success: true,
-          restoredImageUrl: restoredBase64,
-          message: "Gemini photo colorization and restoration completed successfully."
-        });
-      } catch (geminiErr: any) {
-        console.error("Gemini Colorization Error:", geminiErr?.message || geminiErr);
-        
-        return res.status(500).json({
-          success: false,
-          error: "Error during Gemini API colorization: " + (geminiErr?.message || "Unknown error")
-        });
-      }
-
-    } catch (error: any) {
-      console.error("Colorize Endpoint Error:", error);
-      res.status(500).json({
-        success: false,
-        error: "Error during AI colorization: " + (error?.message || "Unknown error")
-      });
-    }
+      if (!geminiKey) return res.status(503).json({ success: false, error: 'Gemini is not configured.' });
+      const restoredImageUrl = await dependencies.colorizePhotoWithGemini({ imageBase64, year: date || era, location, context: prompt });
+      return res.json({ success: true, restoredImageUrl, provider: 'gemini' });
+    } catch (error) { return respondError(res, error); }
   });
-
-  // AI Photo Analysis Endpoint using Gemini API
-  app.post("/api/analyze-photo", async (req, res) => {
+  app.post('/api/analyze-photo', async (req, res) => {
     try {
+      const { imageBase64, prompt } = req.body ?? {};
+      const inlineData = parseImage(imageBase64);
+      validateContext({ prompt });
       const apiKey = process.env.GEMINI_API_KEY;
-      if (!apiKey) {
-        return res.status(200).json({
-          analysis: "Gemini API key not provided. Operating in offline restoration analysis mode.",
-          recommendations: [
-            "Preserve exact facial geometry and unique bone structure.",
-            "Apply subsurface scattering for realistic flesh tones and cheek rosiness.",
-            "Colorize 1940s textiles (pinafore skirts, wool blend, cotton blouses).",
-            "Enhance eye iris catchlights and clear damage/scratches."
-          ]
-        });
-      }
-
-      const ai = new GoogleGenAI({ apiKey });
-      const { imageBase64, prompt } = req.body;
-
-      const model = "gemini-3.6-flash";
-      const contents: any[] = [
-        prompt || "Analyze this historical photograph in detail. Identify subject facial features, clothing textiles, architecture background, estimated era, and specific conservation instructions for colorization and photo humanization."
-      ];
-
-      if (imageBase64) {
-        // Strip data header if present
-        const cleanBase64 = imageBase64.replace(/^data:image\/\w+;base64,/, "");
-        contents.push({
-          inlineData: {
-            mimeType: "image/jpeg",
-            data: cleanBase64
-          }
-        });
-      }
-
+      if (!apiKey) return res.status(503).json({ error: 'Gemini is not configured.' });
+      const ai = new GoogleGenAI({ apiKey, httpOptions: { timeout: 120_000 } });
       const response = await ai.models.generateContent({
-        model,
-        contents
+        model: process.env.GEMINI_ANALYSIS_MODEL || 'gemini-3.6-flash',
+        contents: { parts: [{ inlineData }, { text: prompt || 'Analyze this historical photograph: subjects, clothing, estimated era, and conservation instructions.' }] }
       });
-
-      res.json({
-        analysis: response.text,
-        status: "success"
-      });
-    } catch (error: any) {
-      console.error("Gemini API Error:", error);
-      res.status(500).json({
-        error: "Failed to analyze photo with AI",
-        details: error?.message || "Unknown error"
-      });
-    }
+      if (!response.text) throw new Error('No analysis returned');
+      return res.json({ analysis: response.text, status: 'success' });
+    } catch (error) { return respondError(res, error); }
   });
-
-  // Vite middleware in development
-  if (process.env.NODE_ENV !== "production") {
-    const vite = await createViteServer({
-      server: { middlewareMode: true },
-      appType: "spa",
-    });
-    app.use(vite.middlewares);
-  } else {
-    const distPath = path.join(__dirname, "dist");
-    app.use(express.static(distPath));
-    app.get("*", (_req, res) => {
-      res.sendFile(path.join(distPath, "index.html"));
-    });
-  }
-
-  app.listen(PORT, "0.0.0.0", () => {
-    console.log(`Restoration Studio Server running at http://0.0.0.0:${PORT}`);
+  app.use('/api', (_req, res) => res.status(404).json({ error: 'Unknown API endpoint.' }));
+  app.use((error: any, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
+    res.status(error.type === 'entity.too.large' ? 413 : 400).json({ error: 'Invalid or oversized JSON request.' });
   });
+  return app;
 }
-
-startServer().catch((err) => {
-  console.error("Failed to start server:", err);
-});
+function validateContext(values: Record<string, unknown>) {
+  for (const value of Object.values(values)) if (value != null && (typeof value !== 'string' || value.length > 8000)) throw new TypeError('Context must be text of at most 8000 characters.');
+}
+function respondError(res: express.Response, error: unknown) {
+  const invalid = error instanceof TypeError;
+  return res.status(invalid ? 400 : 502).json({ success: false, error: invalid ? error.message : 'AI processing failed. Please retry.' });
+}
+export async function startServer() {
+  const port = Number(process.env.PORT || 3000);
+  if (!Number.isInteger(port) || port < 1 || port > 65535) throw new Error('PORT must be an integer between 1 and 65535.');
+  const app = createApp();
+  if (process.env.NODE_ENV === 'production') {
+    const clientDirectory = path.join(directory, 'client');
+    app.use(express.static(clientDirectory));
+    app.get('*', (_req, res) => res.sendFile(path.join(clientDirectory, 'index.html')));
+  } else {
+    const { createServer } = await import('vite');
+    const vite = await createServer({ server: { middlewareMode: true }, appType: 'spa' });
+    app.use(vite.middlewares);
+  }
+  const server = app.listen(port, '0.0.0.0', () => console.log(`Humanis listening on port ${port}`));
+  server.on('error', () => { console.error('Unable to listen on configured port'); process.exitCode = 1; });
+  const shutdown = () => { server.close(() => process.exit(0)); setTimeout(() => process.exit(1), 10_000).unref(); };
+  process.once('SIGTERM', shutdown);
+  process.once('SIGINT', shutdown);
+  return server;
+}
+if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+  startServer().catch(() => { console.error('Failed to start Humanis'); process.exitCode = 1; });
+}

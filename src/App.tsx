@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { PhotoItem, RestorationSettings, FaceHotspot } from './types';
 import { Header } from './components/Header';
 import { ComparisonCanvas } from './components/ComparisonCanvas';
@@ -52,12 +52,9 @@ export default function App() {
   // AI Processing State
   const [isProcessingAi, setIsProcessingAi] = useState(false);
   const [aiError, setAiError] = useState<string | null>(null);
-  const [apiKey, setApiKey] = useState<string>(() => localStorage.getItem('user_ai_api_key') || '');
-
-  const handleApiKeyChange = (newKey: string) => {
-    setApiKey(newKey);
-    localStorage.setItem('user_ai_api_key', newKey);
-  };
+  useEffect(() => {
+    try { localStorage.removeItem('user_ai_api_key'); } catch { /* Storage may be disabled. */ }
+  }, []);
 
   // Restoration Sliders
   const [settings, setSettings] = useState<RestorationSettings>({
@@ -121,7 +118,6 @@ export default function App() {
 
       const res = await processAiColorization({
         imageBase64: base64Image,
-        apiKey: apiKey.trim() || undefined,
         era: year,
         date: year,
         location: location,
@@ -248,8 +244,6 @@ export default function App() {
                   onResetSettings={handleResetSettings}
                   onRunColorize={handleRunAiColorization}
                   isProcessingAi={isProcessingAi}
-                  apiKey={apiKey}
-                  onApiKeyChange={handleApiKeyChange}
                   aiError={aiError}
                   year={year}
                   location={location}

@@ -1,3 +1,4 @@
+import { parseImage } from "./image.js";
 import { GoogleGenAI } from "@google/genai";
 
 export interface ColorizeGeminiOptions {
@@ -5,14 +6,13 @@ export interface ColorizeGeminiOptions {
   year?: string;
   location?: string;
   context?: string;
-  apiKey?: string;
 }
 
 /**
  * Sends a multimodal photo restoration request directly to Gemini API.
  */
 export async function colorizePhotoWithGemini(options: ColorizeGeminiOptions): Promise<string> {
-  const apiKey = options.apiKey || process.env.GEMINI_API_KEY;
+  const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) {
     throw new Error("Gemini API key is not configured. Please provide GEMINI_API_KEY.");
   }
@@ -20,15 +20,11 @@ export async function colorizePhotoWithGemini(options: ColorizeGeminiOptions): P
   const ai = new GoogleGenAI({
     apiKey: apiKey,
     httpOptions: {
-      headers: {
-        'User-Agent': 'aistudio-build',
-      }
+      timeout: 120_000
     }
   });
 
-  const cleanBase64 = options.imageBase64.replace(/^data:image\/\w+;base64,/, "");
-  const mimeTypeMatch = options.imageBase64.match(/^data:(image\/\w+);base64,/);
-  const mimeType = mimeTypeMatch ? mimeTypeMatch[1] : "image/jpeg";
+  const { data: cleanBase64, mimeType } = parseImage(options.imageBase64);
 
   const promptText = `Act as an expert historical photograph conservator. Restore, colorize, and humanize this image. 
 Historical context provided by user:
@@ -37,7 +33,7 @@ Historical context provided by user:
 - Additional details: ${options.context || 'None'}
 Requirements: Generate a realistic colorized version. Restore sharp eye catchlights, accurate skin tones (subsurface scattering), and period-accurate clothing pigments matching the specified year and location (e.g. military uniforms, landscape vegetation, architecture). Return the processed high-definition color image.`;
 
-  const modelsToTry = ["gemini-3.1-flash-image", "gemini-3.6-flash", "gemini-3.1-flash-lite-image"];
+  const modelsToTry = [process.env.GEMINI_IMAGE_MODEL || "gemini-3.1-flash-image"];
   let lastError: any = null;
 
   for (const modelName of modelsToTry) {
@@ -45,6 +41,7 @@ Requirements: Generate a realistic colorized version. Restore sharp eye catchlig
       console.log(`Sending image restoration request to Gemini API (${modelName})...`);
       const response = await ai.models.generateContent({
         model: modelName,
+        config: { responseModalities: ["TEXT", "IMAGE"] },
         contents: {
           parts: [
             {
@@ -70,7 +67,7 @@ Requirements: Generate a realistic colorized version. Restore sharp eye catchlig
         }
       }
     } catch (err: any) {
-      console.warn(`Gemini model ${modelName} returned error:`, err?.message || err);
+      console.warn(`Gemini model ${modelName} request failed.`);
       lastError = err;
     }
   }

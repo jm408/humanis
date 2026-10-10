@@ -185,7 +185,7 @@ export const ComparisonCanvas: React.FC<ComparisonCanvasProps> = ({
       {/* Main Stage */}
       <div 
         ref={containerRef}
-        className="relative flex-1 bg-zinc-900 overflow-hidden flex items-center justify-center min-h-[380px] sm:min-h-[500px] touch-none"
+        className="relative flex-1 bg-zinc-900 overflow-hidden flex items-center justify-center min-h-[380px] sm:min-h-[500px] touch-none select-none"
       >
         {isProcessingAi && (
           <div className="absolute inset-0 bg-zinc-950/90 backdrop-blur-md z-40 flex flex-col items-center justify-center p-4 text-center space-y-3">
@@ -225,6 +225,7 @@ export const ComparisonCanvas: React.FC<ComparisonCanvasProps> = ({
               
               {/* IMAGE DE DROITE (Base) */}
               <img
+                draggable={false}
                 ref={baseImgRef}
                 src={isRestoredReady ? photo.restoredUrl : photo.originalUrl}
                 alt="Restored HD"
@@ -263,6 +264,7 @@ export const ComparisonCanvas: React.FC<ComparisonCanvasProps> = ({
                 style={{ width: `${settings.sliderPosition}%` }}
               >
                 <img
+                  draggable={false}
                   src={photo.originalUrl}
                   alt="Original B&W"
                   className="max-h-[65vh] max-w-none object-contain block"
@@ -286,8 +288,8 @@ export const ComparisonCanvas: React.FC<ComparisonCanvasProps> = ({
               <div
                 className="absolute top-0 bottom-0 w-1 bg-amber-400 cursor-ew-resize z-30 shadow-[0_0_12px_rgba(251,191,36,0.8)]"
                 style={{ left: `${settings.sliderPosition}%` }}
-                onMouseDown={() => setIsDraggingSlider(true)}
-                onTouchStart={() => setIsDraggingSlider(true)}
+                onMouseDown={(event) => { event.preventDefault(); setIsDraggingSlider(true); }}
+                onTouchStart={(event) => { event.preventDefault(); setIsDraggingSlider(true); }}
               >
                 <div className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-9 h-9 rounded-full bg-amber-400 text-zinc-950 flex items-center justify-center shadow-xl border-2 border-zinc-950 font-bold">
                   ↔

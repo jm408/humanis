@@ -1,6 +1,6 @@
 # Humanis — Données de marché et limites de preuve
 Version 0.1 · Collecte publique du 18 novembre 2026 · PROPOSÉ.
-Sources primaires : [registre S01–S28](05-benchmark-sources.md). Données fournisseurs déclaratives, non auditées par nous ; statistiques publiques avec champ explicité.
+Sources primaires : [registre S01–S29](05-benchmark-sources.md). Données fournisseurs déclaratives, non auditées par nous ; statistiques publiques avec champ explicité.
 
 ## Résultat
 Il existe des usages et des paiements dans la numérisation/mémoire photographique. En revanche, **aucun TAM/SAM/SOM fiable du segment Humanis n'est établi**, et aucun chiffre ci-dessous ne prouve notre conversion, notre CAC ou notre rentabilité.

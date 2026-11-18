@@ -22,4 +22,4 @@ README.md, BACKLOG.md, src/App.tsx et src/components/Gallery.tsx lus. Autres com
 - [Tests](https://github.com/jm408/humanis/tree/db0a4b77629d2319bd06838f11b85a4c49bc2419/tests)
 
 La présence des tests ne prouve pas leur exécution ; les 18 tests serveur, build et parcours navigateur réussis sont des résultats rapportés dans les échanges antérieurs, non réexécutés dans ce chantier documentaire.
-Complément du 18 novembre 2026 : [benchmark concurrence](pop/03-competitive-benchmark.md), [données marché](pop/04-market-evidence.md) et [registre de 28 sources](pop/05-benchmark-sources.md). Recherche documentaire, sans test produit ni achat. Le document Acquisition & Usage existant sur Drive sera à reprendre lors de la prochaine étape ; il n'est pas migré ni homologué ici.
+Complément du 18 novembre 2026 : [benchmark concurrence](pop/03-competitive-benchmark.md), [données marché](pop/04-market-evidence.md) et [registre de 29 sources](pop/05-benchmark-sources.md). Recherche documentaire, sans test produit ni achat. Le document Acquisition & Usage existant sur Drive sera à reprendre lors de la prochaine étape ; il n'est pas migré ni homologué ici.

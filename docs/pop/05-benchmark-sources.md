@@ -32,6 +32,8 @@ Consultées ou extraits officiels retrouvés le **18 novembre 2026**. Prix publi
 | S27 | Insee — achats par âge 2025 | [Lien](https://www.insee.fr/fr/statistiques/2498792) | France, ménages ordinaires ; horizon 3 mois / 12 mois distinct |
 | S28 | Insee — compétences numériques | [Lien](https://www.insee.fr/fr/statistiques/8739245) | Février 2026, données 2025 |
 
+| S29 | FamilyAlbum — contribution des proches | [Lien](https://help.family-album.com/hc/en-us/articles/360038720013-How-do-I-upload-photos-and-videos) | Dépôt des grands-parents/proches sur autorisation administrateur |
+
 ## Méthode et reproductibilité
 Recherche web de pages éditeurs, aide officielle, présentations investisseurs et Insee. Vérification croisée des pages de prix et d'aide lorsque disponibles. Extraits et PDF lus ; pages 4 et 6 du PDF S24 demandées en capture pour vérifier les données structurées. Aucun compte concurrent créé, aucun paywall franchi, aucun achat ni test de restauration réalisé.
 Les pages publiques peuvent changer après cette date ; cette synthèse conserve les chiffres observés et leurs définitions, sans recopier les documents intégraux. Réouvrir les liens avant décision tarifaire. Les tarifs EUR de FamilyAlbum proviennent de l'aide officielle ; la page commerciale FR renvoyait une erreur 403. Remini ne publie pas de tarif mobile fixe. Les modalités d'« illimité » ou de conservation ne sont pas élargies au-delà du texte disponible.

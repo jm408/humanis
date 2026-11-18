@@ -5,7 +5,7 @@ Formalisation des décisions de conversation et de l'existant, pour revue avec O
 
 ## Lecture
 1. [Opportunity Brief](pop/01-opportunity-brief.md)
-2. [Opportunity Assessment](pop/02-opportunity-assessment.md)
+2. [Opportunity Assessment](pop/02-opportunity-assessment.md), [benchmark concurrence](pop/03-competitive-benchmark.md) et [données marché](pop/04-market-evidence.md)
 3. [Produit : cadrage à validation](product/README.md)
 4. [Design : existant, principes et parcours cibles](ux-ui/README.md)
 5. [Décisions et réserves communes](product/07-validation-dossier.md)
